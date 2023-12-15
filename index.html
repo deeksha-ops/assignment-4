@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <style>
+    label {
+      font-family: sans-serif;
+      font-size: larger;
+    }
+
+    svg {
+      width: 70%;
+    }
+  </style>
+</head>
+
+<body>
+  <div>
+    <label for="threshold">Threshold</label>
+    <input type="range" min="10" max="20" value="20" step="2" id="threshold" width="150px" />
+  </div>
+  <svg viewbox="0 0 512 512"></svg>
+  <script>
+    const csvFile = "data/Data_CT.csv";
+    const svg = d3.select("svg");
+
+    d3.csv(csvFile).then(main);
+
+    function main(data) {
+      const values = data.map((d) => +d[0]);
+
+      let m = 512;
+      let n = 512;
+
+      const extent = d3.extent(values);
+
+      function draw(threshold) {
+        const contour = d3
+          .contours()
+          .size([m, n])
+          .thresholds(d3.range(extent[0], extent[1], threshold))(values);
+
+        const path = d3.geoPath();
+
+        let min_max = d3.extent(contour, (d) => d.value);
+
+        const mid = 346;
+
+        const colorScale = d3.scaleDiverging()
+          .domain([min_max[0], mid, min_max[1]])
+          .interpolator(d3.interpolateViridis);
+
+        svg
+          .selectAll("path")
+          .data(contour)
+          .enter()
+          .append("path")
+          .attr("d", path)
+          .attr("stroke", "black")
+          .attr("fill", "none")
+          .attr("stroke-linejoin", "round")
+          .attr("stroke-width", d => 300 > d.value ? "0px" : "0.05px")
+          .attr("fill", (d) => 300 < d.value ? colorScale(d.value) : "#fff");
+      }
+
+      draw(20);
+
+      d3.select("#threshold").on("input", (event) => {
+        svg.selectAll("*").remove();
+        draw(event.target.value);
+      });
+    }
+  </script>
+</body>
+
+</html>
